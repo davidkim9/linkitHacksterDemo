@@ -11,8 +11,9 @@ char buff[256];
 
 #define WIFI_AP "THE FARM WiFi"
 #define WIFI_PASSWORD "organicfarm"
-#define WIFI_AUTH LWIFI_WEP  // choose from LWIFI_OPEN, LWIFI_WPA, or LWIFI_WEP.
+#define WIFI_AUTH LWIFI_WPA  // choose from LWIFI_OPEN, LWIFI_WPA, or LWIFI_WEP.
 #define SITE_URL "hacksterdemo.azurewebsites.net"
+#define SITE_PATH "gps"
 
 LWiFiClient c;
 
@@ -138,6 +139,40 @@ void convertCoords(float latitude, float longitude, double &lat_return, double &
 
 
 
+void updateWeb(){
+  
+  Serial.println("Sending value to Ubidots...");
+ 
+  while (!c.connect(SITE_URL, 80))
+  {
+    Serial.println("Retrying to connect...");
+    delay(100);
+  }
+  String deviceId = "Device1";
+  String lat = "123";
+  String lon = "456";
+  String data = "{\"device\":\"" + deviceId + "\", \"lon\":\"" + lon + "\", \"lat\":\"" + lat + "\"}";
+  String thisLength = String(data.length());
+
+  // Build HTTP POST request
+  c.print("POST /gps");
+  c.println(" HTTP/1.1");
+  c.println("Content-Type: application/json");
+  c.println("Content-Length: " + thisLength);
+  c.print("Host: ");
+  c.println(SITE_URL);
+  c.print("\n" + data);
+  c.print(char(26));
+
+  // read server response
+
+  while (c){
+    Serial.print((char)c.read());
+  }
+
+  c.stop();
+
+}
 
 void setup()
 {
@@ -150,72 +185,22 @@ void setup()
   {
     delay(1000);
   }
-  
+  Serial.println("Connected to wifi");
   LGPS.powerOn();
   Serial.println("LGPS Power on, and waiting ..."); 
   delay(3000);
   
-  
-  
-  
-//  
-//  
-//  // keep retrying until connected to website
-//  Serial.println("Connecting to WebSite");
-//  while (0 == c.connect(SITE_URL, 80))
-//  {
-//    Serial.println("Re-Connecting to WebSite");
-//    delay(1000);
-//  }
-//
-//  // send HTTP request, ends with 2 CR/LF
-//  Serial.println("send HTTP GET request");
-//  c.println("GET / HTTP/1.1");
-//  c.println("Host: " SITE_URL);
-//  c.println("Connection: close");
-//  c.println();
-//
-//  // waiting for server response
-//  Serial.println("waiting HTTP response:");
-//  while (!c.available())
-//  {
-//    delay(100);
-//  }
 }
 
 boolean disconnectedMsg = false;
 
 void loop()
 {
-//  // Make sure we are connected, and dump the response content to Serial
-//  while (c)
-//  {
-//    int v = c.read();
-//    if (v != -1)
-//    {
-//      Serial.print((char)v);
-//    }
-//    else
-//    {
-//      Serial.println("no more content, disconnect");
-//      c.stop();
-//      while (1)
-//      {
-//        delay(1);
-//      }
-//    }
-//  }
-//
-//  if (!disconnectedMsg)
-//  {
-//    Serial.println("disconnected by server");
-//    disconnectedMsg = true;
-//  }
-//  delay(500);
-  
-  LGPS.getData(&info);
-  Serial.println((char*)info.GPGGA);
-  parseGPGGA((const char*)info.GPGGA);
-  delay(2000);
+
+  //updateWeb();
+//  LGPS.getData(&info);
+//  Serial.println((char*)info.GPGGA);
+//  parseGPGGA((const char*)info.GPGGA);
+//  delay(2000);
 }
 
