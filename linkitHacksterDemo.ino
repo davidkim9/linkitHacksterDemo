@@ -18,6 +18,28 @@ LWiFiClient c;
 
 
 //GPS STUFF
+	//Meters
+	double minUpdateDistance = 25;
+	double lastLon = 0;
+	double lastLat = 0;
+	const float Pi = 3.14159;
+	double toRad(double angle){
+	    return angle * PI/180;
+	}
+	static double milesApart(double lon1, double lat1, double lon2, double lat2){
+	    double R = 6371000; // meters
+	    double phi1 = toRad(lat1);
+	    double phi2 = toRad(lat2);
+	    double dPhi = toRad(lat2-lat1);
+	    double dLambda = toRad(lon2-lon1);
+
+	    double a = sin(dPhi/2) * sin(dPhi/2) + cos(phi1) * cos(phi2) * sin(dLambda/2) * sin(dLambda/2);
+	    double c = 2 * atan2(sqrt(a), sqrt(1-a));
+
+	    double d = R * c;
+
+	    return d;
+	}
 
 	static unsigned char getComma(unsigned char num,const char *str)
 	{
@@ -104,15 +126,23 @@ LWiFiClient c;
 			sprintf(buff, "  -  %d satellites", num);
 			Serial.println(buff);
 
-			String strLon = String(longitude);
-			if(longitude_dir == 'W') {
-				strLon = "-" + strLon;
+			if(milesApart(lastLat, lastLon, latitude, longitude) > minUpdateDistance){
+				sprintf(buff, "%10.4f", longitude);
+				String strLon = String(buff);
+				if(longitude_dir == 'W') {
+					strLon = "-" + strLon;
+				}
+				sprintf(buff, "%10.4f", latitude);
+				String strLat = String(latitude);
+				if(latitude_dir == 'S') {
+					strLat = "-" + strLat;
+				}
+				updateWeb(strLon, strLat);
+
+				lastLat = latitude;
+				lastLon = longitude;
+
 			}
-			String strLat = String(latitude);
-			if(latitude_dir == 'S') {
-				strLat = "-" + strLat;
-			}
-			updateWeb(strLon, strLat);
 		}
 		else{
 			Serial.println("No GPS data"); 
@@ -133,7 +163,7 @@ LWiFiClient c;
 
 void updateWeb(String lon, String lat){
 
-	Serial.println("Sending value to Ubidots...");
+	Serial.println("Sending value to Dude where's my car...");
 
 	int attempts = 3;
 	while (!c.connect(SITE_URL, 80) && attempts > 0)
@@ -158,7 +188,6 @@ void updateWeb(String lon, String lat){
 	c.print(char(26));
 
 	// read server response
-
 	// while (c){
 	// 	Serial.print((char)c.read());
 	// }
